@@ -17,6 +17,12 @@
   },
   "homepage": "https://github.com/thinhnguyen5/Summer-Project-API#readme",
   "dependencies": {
-    "express": "^4.17.1"
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "passport": "^0.4.1",
+    "passport-http": "^0.3.0",
+    "uuid": "^8.3.2"
   }
 }
