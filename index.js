@@ -2,68 +2,96 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcryptjs');
-const passportHttp = require('passport-http');
+const Strategy = require('passport-http').BasicStrategy;
 const passport = require('passport');
 const cors = require('cors');
-const app = express()
-const port = 3000
+const db = require('./db');
+const app = express();
+const port = 4000;
+
+const saltRounds = 4;
 
 app.use(express.json());
 app.use(cors());
 
-let users = [
-  {
-    id: '130ef3c5-2cb6-47c5-8df1-2ba78d8c0d48',
-    username: 'lasse',
-    password: '$2a$08$SatQY..QLEoc4i1/ttb64.O36/8HO2YtYYa/.lbHgqVM4ofDCqDsi', //123456
-    email: '1@2'
-  }
-];
+
 
 app.get('/', (req, res) => {
   res.send('Hello World!')
 })
 
-app.post('/register', (req, res) => {
-    console.log(req.body);
+passport.use(new Strategy((username, password, cb) => {
+  db.query('SELECT id, username, password FROM users WHERE username = ?', [username]).then(dbResults => {
+    
+    if (dbResults.length == 0)
+    {
+      return cb(null, false);
+    }
+    
+    bcrypt.compare(password, dbResults[0].password).then(bcryptResult => {
+      if(bcryptResult == true)
+      {
+        cb(null, dbResults[0]);
+      }else{
+        return cb(null, false);
+      }
+    })
 
-    const passwordHash = bcrypt.hashSync(req.body.password, 8);
-
-    users.push({
-      id: uuidv4(),
-      username: req.body.username,
-      password: passwordHash,
-      email: req.body.email,
-
-    });
-
-    res.sendStatus(200); 
-});
-
-app.get('/users', (req, res) => {
-  res.json(users);
-});
-
-passport.use(new passportHttp.BasicStrategy(function(username, password, done){
-  const userResult = users.find(user => user.username === username);
-  if(userResult == undefined) {
-    return done(null, false);
-  }
-
-  if(bcrypt.compareSync(password, userResult.password) == false)
-{
-  return done(null, false);
-}
-
-done(null, userResult);
-
+  }).catch(dbError => cb(err))
 }));
 
-app.post('/login', passport.authenticate('basic', { session: false }), (req, res) => {
-  console.log(req.user);
-  res.sendStatus(200);
+
+app.get('/users', (req, res) => {
+  db.query('SELECT id, username FROM users').then(results => {
+    res.json(results);
+  })
+})
+
+app.get('/users/:id', 
+       passport.authenticate('basic', { session: false }),
+       (req, res) => {
+         db.query('SELECT id, username FROM users WHERE id = ?', [req.params.id]).then(results => {
+           res.json(results)
+         })
 });
 
-app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`)
+app.post('/users', (req, res) => {
+  let username = req.body.username.trim();
+  let password = req.body.password.trim();
+
+  if((typeof username === "string") &&
+     (typeof password === "string") &&
+     (password.length >= 6))
+  {
+    bcrypt.hash(password, saltRounds).then(hash => 
+      db.query('INSERT INTO users (username, password) VALUES (?,?)', [username, hash])
+    )
+    .then(dbResults => {
+        console.log(dbResults);
+        res.sendStatus(201);
+      })
+      .catch(error => res.sendStatus(500));
+  }
+  else {
+    console.log("Wrong type, Username and Password do not have space character and password must more then 6 characters. Try again! " );
+    res.sendStatus(404);
+  }
 })
+
+Promise.all(
+  [
+      db.query(`CREATE TABLE IF NOT EXISTS users(
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          username VARCHAR(32),
+          password VARCHAR(256)
+      )`),
+  ]
+).then(() => {
+  console.log('database initialized');
+  app.listen(port, () => {
+    console.log(`Example app listening at http://localhost:${port}`);
+  });
+})
+.catch(error => console.log(error));
+
+
