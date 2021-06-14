@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const Strategy = require('passport-http').BasicStrategy;
 const passport = require('passport');
 const cors = require('cors');
+const menuComponent = require('./components/menu')
 const db = require('./db');
 const app = express();
 const port = 4000;
@@ -12,7 +13,8 @@ const port = 4000;
 const saltRounds = 4;
 
 app.use(express.json());
-app.use(cors());
+app.use(cors())
+app.use('/menu', menuComponent);
 
 
 
@@ -84,7 +86,24 @@ Promise.all(
           id INT AUTO_INCREMENT PRIMARY KEY,
           username VARCHAR(32),
           password VARCHAR(256)
-      )`),
+      )`)
+
+    //   db.query(`CREATE TABLE IF NOT EXISTS menu(
+    //       id INT AUTO_INCREMENT PRIMARY KEY,
+    //       name VARCHAR(255), 
+    //       description VARCHAR(255), 
+    //       nutritioninformation VARCHAR(255), 
+    //       size VARCHAR(255), 
+    //       calories VARCHAR(255), 
+    //       fat VARCHAR(255), 
+    //       cholesterol VARCHAR(255),
+    //       carbohydrates VARCHAR(255),
+    //       protein VARCHAR(255),
+    //       caffeine VARCHAR(255),
+    //       ingredients VARCHAR(255),
+    //       price VARCHAR(255),
+    //       img VARCHAR(255)) Engine=InnoDB;
+    // )`)
   ]
 ).then(() => {
   console.log('database initialized');
