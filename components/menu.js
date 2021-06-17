@@ -37,4 +37,16 @@ router.post('/', (req, res) => {
     });
 });
 
+router.delete('/:id', (req, res) => {
+    db.query('DELETE FROM menu where id = ?', [req.params.id])
+    .then(results => {
+        res.sendStatus(200);
+    })
+    .catch(error => {
+        console.log(error);
+        res.sendStatus(500);
+    });
+});
+
+
 module.exports = router;
